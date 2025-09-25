@@ -8,15 +8,21 @@ import (
 // первое решение
 // func or(channels ...<-chan interface{}) <-chan interface{} {
 // 	mergedChan := make(chan interface{})
+// 	var once sync.Once
 
 // 	go func() {
-// 		// для каждого канала создаем горутину, которая считает все элементы из канала
-// 		// отправляет сигнал в mergedChan и закрывает mergedChan, если канал закрыли
+// 		// для каждого канала создаем горутину, которая ждет закрытия канала и закрывает mergedChan
+// 		// используем sync.Once чтобы гарантировать закрытие один раз(избежать панику)
 // 		for i := range channels {
 // 			go func(i int) {
 // 				// блокируемся пока канал не отправит сигнал done или закроется, потом закрываем
-// 				<-channels[i]
-// 				close(mergedChan)
+// 				_, ok := <-channels[i]
+// 				if !ok {
+// 					once.Do(func() {
+// 						close(mergedChan)
+// 					})
+// 				}
+
 // 			}(i)
 // 		}
 // 	}()
