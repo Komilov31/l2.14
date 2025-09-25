@@ -35,7 +35,7 @@ import (
 // если 1 канал передан, то возвращаем его, иначе переходим в default
 // читаем из 2 каналов, приходит значение -> селект завершится и канал закрываем
 // если нет,то рекурсивно запускаем эту функцию на оставшиеся каналы, что повторяет эти действия
-func or(channels ...<-chan interface{}) <-chan interface{} {
+func Or(channels ...<-chan interface{}) <-chan interface{} {
 	mergedChan := make(chan interface{})
 
 	switch len(channels) {
@@ -44,6 +44,16 @@ func or(channels ...<-chan interface{}) <-chan interface{} {
 		return mergedChan
 	case 1:
 		return channels[0]
+	case 2:
+		go func() {
+			defer close(mergedChan)
+
+			select {
+			case <-channels[0]:
+			case <-channels[1]:
+			}
+		}()
+		return mergedChan
 	default:
 		go func() {
 			defer close(mergedChan)
@@ -51,7 +61,7 @@ func or(channels ...<-chan interface{}) <-chan interface{} {
 			select {
 			case <-channels[0]:
 			case <-channels[1]:
-			case <-or(channels[2:]...):
+			case <-Or(channels[2:]...):
 			}
 		}()
 		return mergedChan
